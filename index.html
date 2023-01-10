@@ -3,24 +3,38 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="wigth=device-width, initial-scale=1.0">
-        <title>Document</title>
+        <title>2022 sub</title>
+        <style>
+            * { padding: 0; margin: 0; }
+            canvas { background: #eee; display: block;}
+            li{list-style: none;}
+            ul{display: flex;}
+            .inline-block>div{
+                display: inline-block;
+            }
+        </style> 
     </head>
 
     <body>
         <div>Teachable Machine Pose Model</div>
-        <button type="button" onclick="init()">Start</button>
-        <div><canvas id="canvas"></canvas></div>
+        <div class="btnset">
+            <button type="button" onclick="init()">Camera Start</button>
+            <button id="startbtn" type="button" onclick="pin()">START & Score Clear</button>
+        </div>
+        
+        <div><canvas id="canvas" width="200" height="200"></canvas></div>
+        <canvas id="myCanvas" width="480" height="320"></canvas>
+        <div id="str3"></div>
         <div id="label-container"></div>
         <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
         <script type="text/javascript">
-            // More API functions here:
-            // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/pose
 
-            // the link to your model provided by Teachable Machine export panel
+            
+
             const URL = "./my_model/";
             let model, webcam, ctx, labelContainer, maxPredictions;
-
+            var prediction
             async function init() {
                 const modelURL = URL + "model.json";
                 const metadataURL = URL + "metadata.json";
@@ -47,6 +61,7 @@
                 for (let i = 0; i < maxPredictions; i++) { // and class labels
                     labelContainer.appendChild(document.createElement("div"));
                 }
+                
             }
 
             async function loop(timestamp) {
@@ -54,20 +69,21 @@
                 await predict();
                 window.requestAnimationFrame(loop);
             }
-
+            
             async function predict() {
                 // Prediction #1: run input through posenet
                 // estimatePose can take in an image, video or canvas html element
                 const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
                 // Prediction 2: run input through teachable machine classification model
-                const prediction = await model.predict(posenetOutput);
+                var prediction = await model.predict(posenetOutput);
 
-                for (let i = 0; i < maxPredictions; i++) {
-                    const classPrediction =
-                        prediction[i].className + ": " + prediction[i].probability.toFixed(2);
-                    labelContainer.childNodes[i].innerHTML = classPrediction;
+                if(prediction[1].probability.toFixed(2) > 0.80){
+                    num_fligt = 3
+                }else if(prediction[2].probability.toFixed(2) > 0.80){
+                    num_fligt = 1
+                }else{
+                    num_fligt = 2
                 }
-
                 // finally draw the poses
                 drawPose(pose);
             }
@@ -83,6 +99,147 @@
                     }
                 }
             }
+            
+        
+            var canvas = document.getElementById("myCanvas");
+            var ctx2 = canvas.getContext("2d");
+            var rightPressed = false;
+            var leftPressed = false;
+
+            //test 
+            var now = document.getElementById("str1");//右左無
+            var rand = document.getElementById("str2");//flagのカウント
+            var TF_check = document.getElementById("str3");//成功カウント
+            var count_ok = 0;
+            var count_no = 0; 
+            var count_ok_s = 0;
+            var count_no_s = 0;
+            var flag = 0;
+            var position = 1   //1-3
+            
+            var ch_rock = false //岩があるか
+            var num_rock = 1 //岩の場所 1左 2中 3右
+            var flag_count_rock = 0 //岩が生成された時の経過フレーム
+            var sp_rock = 1 //岩のスピード
+            var len_rock = 0 //岩の大きさ
+            var y_rock = 0 //岩のy座標
+            var start_flag = true //スコアのクリア判別用
+            var flag_3 = true //記録保存用
+
+            var num_fligt = 1 //飛行機の場所 1左 2中 3右
+
+            var chara_M = new Image();
+            chara_M.src = "m-removebg-preview.png";  
+            var chara_R = new Image();
+            chara_R.src = "R-removebg-preview.png";  
+            var chara_L = new Image();
+            chara_L.src = "L-removebg-preview.png";  
+            //test 
+
+
+            document.addEventListener("keydown", keyDownHandler, false);
+            document.addEventListener("keyup", keyUpHandler, false);
+
+            function keyDownHandler(e) {
+                if(e.key == "Right" || e.key == "ArrowRight") {
+                    rightPressed = true;
+                }
+                else if(e.key == "Left" || e.key == "ArrowLeft") {
+                    leftPressed = true;
+                }
+            }
+
+            function keyUpHandler(e) {
+                if(e.key == "Right" || e.key == "ArrowRight") {
+                    rightPressed = false;
+                }
+                else if(e.key == "Left" || e.key == "ArrowLeft") {
+                    leftPressed = false;
+                }
+            }
+
+            function drawBall(num_flag) {
+                if(y_rock>=250){
+                    if(num_fligt == num_rock){
+                        count_no += 1
+                    }else{
+                        count_ok += 1
+                    }
+                    ch_rock=false
+                }
+                if(!ch_rock){
+                    num_rock = Math.floor( Math.random() * 3 + 1);
+                    ch_rock = true;
+                    flag_count_rock = num_flag;
+                }
+                ctx2.beginPath();
+
+                y_rock =  20 + (num_flag-flag_count_rock) * y_speed();
+                len_rock = 2 + 0.12*(num_flag-flag_count_rock)* y_speed();
+                if(num_rock == 1){
+                    ctx2.arc(60, y_rock, len_rock, 0, Math.PI*2);
+                }else if(num_rock == 2){
+                    ctx2.arc(241, y_rock, len_rock, 0, Math.PI*2);
+                }else{
+                    ctx2.arc(405, y_rock, len_rock, 0, Math.PI*2);
+                }
+                ctx2.fillStyle = "#8B4513";
+                ctx2.fill();
+                ctx2.closePath();
+                //console.log(y_speed() + "   " + len_rock + "   "  + y_rock)
+
+            }
+
+            function y_speed(){
+                val = Math.floor(count_ok/5) + 1
+                return val
+            }
+
+            function draw() {
+                ctx2.clearRect(0, 0, canvas.width, canvas.height);
+                drawBall(flag);
+                flag += 1;
+
+                
+                if(count_no==1){document.getElementById("img3").style.visibility="hidden";}
+                if(count_no==2){document.getElementById("img2").style.visibility="hidden";}
+                if(count_no==3 && flag_3){
+                    document.getElementById("img1").style.visibility="hidden";
+                    count_no_s = count_no;
+                    count_ok_s = count_ok;
+                    flag_3 = false;
+                }
+                if(count_no > 2){
+                    TF_check.innerText = "今回の結果  成功  " + count_ok_s + "  失敗  " + count_no_s + "    現在    成功  " + count_ok + "  失敗  " + count_no;
+                }else{
+                    TF_check.innerText = "  成功  " + count_ok + "  失敗  " + count_no;
+                }
+                
+                if(num_fligt==3){
+                    ctx2.drawImage(chara_R, 340, 225, 133, 75);
+                }else if(num_fligt==1){
+                    ctx2.drawImage(chara_L, 0, 225, 133, 75);
+                }else{
+                    ctx2.drawImage(chara_M, 175, 225, 133, 75);
+                }
+                
+            }
+            function pin(){
+                if(start_flag){
+                    setInterval(draw, 20);
+                    start_flag = false;
+                }
+                count_no = 0;
+                count_ok = 0;
+                document.getElementById("img1").style.visibility="visible";
+                document.getElementById("img2").style.visibility="visible";
+                document.getElementById("img3").style.visibility="visible";
+            }
         </script>
+        <ul>
+            <li><img  id="img1"  src="heat.png" width="30" height="30" alt=""></li>
+            <li><img  id="img2"  src="heat.png" width="30" height="30" alt=""></li>
+            <li><img  id="img3"  src="heat.png" width="30" height="30" alt=""></li>
+        </ul>
     </body>
 </html>
